@@ -1,18 +1,20 @@
-## [2026-05-10 12:10] - Fix SSR crash and Client auth mode toggle bug
+## [2026-05-10 12:15] - Fix Git tracking for frontend directory
 
 **Problem/Request:**
-The user reported that the registration as a user "disappeared" (the toggle was gone, and they were stuck on the Business Onboarding screen) and there were SSR errors ("This page didn't load").
+The user was unable to push changes from the `frontend` folder to the repository because Git was ignoring the entire directory.
 
-**Files Modified:**
-- frontend/src/routes/index.tsx (added `setMode("client")` to `useEffect` when session is detected)
-- frontend/src/lib/supabase.ts (added fallback values to prevent SSR crashes)
+**Files/State Modified:**
+- `frontend/.git` directory (removed)
+- Git index (removed `frontend` as a submodule, added contents of `frontend` as regular files)
 
 **Solution Summary:**
-1. **SSR Crash Fix**: Added a fallback URL to `supabase.ts`. If `import.meta.env` is missing during Server-Side Rendering (SSR), it won't throw an "Invalid URL" error and crash the page, but will gracefully render the initial HTML.
-2. **Logic Trap Fix**: Previously, if a user logged in (e.g. via Google OAuth) and was redirected back, the app correctly detected the session and set `isClientLoggedIn = true`. However, it left the `mode` as `"business"` (the default). This caused the app to render the Business Onboarding screen and hide the mode toggle, trapping the user. I updated the `useEffect` to automatically switch the `mode` to `"client"` when a valid Supabase session is detected.
+The root cause was that `frontend` was initialized as a Git Submodule (it contained its own hidden `.git` folder). When a folder has its own `.git` directory, the parent repository ignores its contents and only tracks it as a submodule reference. 
+1. I deleted the nested `frontend/.git` folder using PowerShell.
+2. I cleared the submodule cache using `git rm --cached frontend`.
+3. I added the frontend files to the root repository using `git add frontend/`.
 
 **Verification:**
-The code has been updated and formatted. The logic now correctly forces the UI into the client dashboard when a session exists.
+Running `git status` confirmed that all files inside `frontend/` (like `index.tsx`, `package.json`, etc.) are now correctly staged as new files in the main repository.
 
 **Outcome:**
 ✅ Success
